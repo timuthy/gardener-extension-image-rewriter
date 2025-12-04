@@ -37,6 +37,9 @@ type ContainerdHostConfig struct {
 	URL string `json:"url"`
 	// Provider is the name of the provider for which this target is applicable.
 	Provider string `json:"provider"`
+	// CloudProfiles are the cloud profiles of the shoot that should be considered.
+	// +optional
+	CloudProfiles []string `json:"cloudProfiles,omitempty"`
 	// Regions are the regions where the target image is located. If not specified, any shoot region will match this host config.
 	// +optional
 	Regions []string `json:"regions,omitempty"`
@@ -55,6 +58,9 @@ type TargetConfiguration struct {
 	Image `json:",inline"`
 	// Provider is the name of the provider for which this target is applicable.
 	Provider string `json:"provider"`
+	// CloudProfiles are the cloud profiles of the shoot that should be considered.
+	// +optional
+	CloudProfiles []string `json:"cloudProfiles,omitempty"`
 	// Regions are the regions where the target image is located. If not specified, any shoot region will match this target config.
 	// +optional
 	Regions []string `json:"regions,omitempty"`

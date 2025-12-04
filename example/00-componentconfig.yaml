@@ -19,6 +19,9 @@ containerd:
   - url: "https://registry.gardener.cloud/v2/east"
     provider: "local"
     regions: ["east"]
+  - url: "https://generic.registry.gardener.cloud"
+    provider: "generic"
+  # cloudProfiles: ["profile1", "profile2"] # optional filter
 overwrites:
 - source:
     prefix: "europe-docker.pkg.dev/gardener-project"
@@ -35,3 +38,6 @@ overwrites:
   - prefix: "east.registry.gardener.cloud/gardener-project"
     provider: "local"
     regions: ["east"]
+  - prefix: "generic.registry.gardener.cloud/gardener-project"
+    provider: "generic"
+  # cloudProfiles: ["profile1", "profile2"] # optional filter

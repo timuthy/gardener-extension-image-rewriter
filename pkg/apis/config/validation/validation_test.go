@@ -101,6 +101,22 @@ var _ = Describe("Validation", func() {
 			}))))
 		})
 
+		It("should validate cloudprofile not empty", func() {
+			config.Overwrites[0].Source.Image = ptr.To("foo/bar:latest")
+			config.Overwrites[0].Targets = []v1alpha1.TargetConfiguration{{
+				Image: v1alpha1.Image{
+					Image: ptr.To("foo/bar:latest"),
+				},
+				Provider:      "local",
+				CloudProfiles: []string{""},
+			}}
+
+			Expect(ValidateConfiguration(config)).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":  Equal(field.ErrorTypeInvalid),
+				"Field": Equal("overwrites[0].targets[0].cloudProfiles[0]"),
+			}))))
+		})
+
 		It("should validate region is not empty", func() {
 			config.Overwrites[0].Source.Image = ptr.To("foo/bar:latest")
 			config.Overwrites[0].Targets = []v1alpha1.TargetConfiguration{{

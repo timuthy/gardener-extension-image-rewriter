@@ -147,6 +147,18 @@ string
 </tr>
 <tr>
 <td>
+<code>cloudProfiles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CloudProfiles are the cloud profiles of the shoot that should be considered.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>regions</code></br>
 <em>
 []string
@@ -289,6 +301,18 @@ string
 </td>
 <td>
 <p>Provider is the name of the provider for which this target is applicable.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cloudProfiles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CloudProfiles are the cloud profiles of the shoot that should be considered.</p>
 </td>
 </tr>
 <tr>

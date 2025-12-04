@@ -54,6 +54,11 @@ func ValidateConfiguration(config *v1alpha1.Configuration) field.ErrorList {
 				allErrs = append(allErrs, field.Required(fldTarget.Child("provider"), "provider must be specified"))
 			}
 
+			for k, cloudProfile := range target.CloudProfiles {
+				if cloudProfile == "" {
+					allErrs = append(allErrs, field.Invalid(fldTarget.Child("cloudProfiles").Index(k), cloudProfile, "cloudProfile must not be empty"))
+				}
+			}
 			for k, region := range target.Regions {
 				if region == "" {
 					allErrs = append(allErrs, field.Invalid(fldTarget.Child("regions").Index(k), region, "region must not be empty"))
