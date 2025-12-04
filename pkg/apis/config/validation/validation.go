@@ -5,6 +5,8 @@
 package validation
 
 import (
+	"net/url"
+
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/gardener/gardener-extension-image-rewriter/pkg/apis/config/v1alpha1"
@@ -14,8 +16,55 @@ import (
 func ValidateConfiguration(config *v1alpha1.Configuration) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	for i, overwrite := range config.Overwrites {
-		fldOverwrites := field.NewPath("overwrites").Index(i)
+	allErrs = append(allErrs, validateContainerd(config.Containerd, field.NewPath("containerd"))...)
+	allErrs = append(allErrs, validateOverwrites(config.Overwrites, field.NewPath("overwrites"))...)
+
+	return allErrs
+}
+
+func validateContainerd(config []v1alpha1.ContainerdConfiguration, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	for i, containerd := range config {
+		fldContainerd := fldPath.Index(i)
+
+		if containerd.Upstream == "" {
+			allErrs = append(allErrs, field.Required(fldContainerd.Child("upstream"), "upstream must be specified"))
+		}
+
+		allErrs = append(allErrs, validateURL(containerd.Server, fldContainerd.Child("server"))...)
+
+		for j, host := range containerd.Hosts {
+			fldHost := fldContainerd.Child("hosts").Index(j)
+
+			allErrs = append(allErrs, validateURL(host.URL, fldHost.Child("url"))...)
+
+			if host.Provider == "" {
+				allErrs = append(allErrs, field.Required(fldHost.Child("provider"), "provider must be specified"))
+			}
+
+			for k, cloudProfile := range host.CloudProfiles {
+				if cloudProfile == "" {
+					allErrs = append(allErrs, field.Invalid(fldHost.Child("cloudProfiles").Index(k), cloudProfile, "cloudProfile must not be empty"))
+				}
+			}
+
+			for k, region := range host.Regions {
+				if region == "" {
+					allErrs = append(allErrs, field.Invalid(fldHost.Child("regions").Index(k), region, "region must not be empty"))
+				}
+			}
+		}
+	}
+
+	return allErrs
+}
+
+func validateOverwrites(overwrites []v1alpha1.ImageOverwrite, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	for i, overwrite := range overwrites {
+		fldOverwrites := fldPath.Index(i)
 
 		if overwrite.Source.Image == nil && overwrite.Source.Prefix == nil {
 			allErrs = append(allErrs, field.Required(fldOverwrites.Child("source"), "either 'image' or 'prefix' must be set"))
@@ -64,6 +113,23 @@ func ValidateConfiguration(config *v1alpha1.Configuration) field.ErrorList {
 					allErrs = append(allErrs, field.Invalid(fldTarget.Child("regions").Index(k), region, "region must not be empty"))
 				}
 			}
+		}
+	}
+
+	return allErrs
+}
+
+func validateURL(urlString string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if urlString == "" {
+		allErrs = append(allErrs, field.Required(fldPath, "server must be specified"))
+	} else {
+		url, err := url.Parse(urlString)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath, url, "must be a valid URL"))
+		} else if url.Scheme == "" {
+			allErrs = append(allErrs, field.Invalid(fldPath, url, "must have a scheme"))
 		}
 	}
 
