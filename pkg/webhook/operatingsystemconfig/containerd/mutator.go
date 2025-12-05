@@ -13,6 +13,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	gardenerutils "github.com/gardener/gardener/pkg/utils/gardener"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -43,14 +44,16 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		return nil
 	}
 
-	var (
-		shootProvider = cluster.Shoot.Spec.Provider.Type
-		shootRegion   = cluster.Shoot.Spec.Region
-	)
+	shootProvider := cluster.Shoot.Spec.Provider.Type
+	shootRegion := cluster.Shoot.Spec.Region
+	shootCloudProfile := gardenerutils.BuildV1beta1CloudProfileReference(cluster.Shoot)
+	if shootCloudProfile == nil {
+		return fmt.Errorf("failed to get cloud profile from shoot")
+	}
 
 	switch osc.Spec.Purpose {
 	case extensionsv1alpha1.OperatingSystemConfigPurposeReconcile:
-		for _, upstreamConfig := range m.config.GetUpstreamConfig(shootProvider, shootRegion) {
+		for _, upstreamConfig := range m.config.GetUpstreamConfig(shootProvider, shootRegion, shootCloudProfile.Name) {
 			if osc.Spec.CRIConfig.Containerd == nil {
 				osc.Spec.CRIConfig.Containerd = &extensionsv1alpha1.ContainerdConfig{}
 			}
@@ -76,7 +79,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		}
 
 	case extensionsv1alpha1.OperatingSystemConfigPurposeProvision:
-		for _, upstreamConfig := range m.config.GetUpstreamConfig(shootProvider, shootRegion) {
+		for _, upstreamConfig := range m.config.GetUpstreamConfig(shootProvider, shootRegion, shootCloudProfile.Name) {
 			mirror := containerd.RegistryMirror{
 				UpstreamServer: upstreamConfig.Server,
 				MirrorHost:     upstreamConfig.HostURL,

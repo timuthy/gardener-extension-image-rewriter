@@ -22,8 +22,8 @@ type UpStreamConfiguration struct {
 
 // Configuration defines the interface for operating on image configurations.
 type Configuration interface {
-	// GetUpstreamConfig returns the containerd upstream configuration based on provider and region.
-	GetUpstreamConfig(provider string, region string) []UpStreamConfiguration
+	// GetUpstreamConfig returns the containerd upstream configuration based on provider, region and cloud profile.
+	GetUpstreamConfig(provider string, region string, cloudProfile string) []UpStreamConfiguration
 }
 
 type configuration struct {
@@ -37,19 +37,26 @@ type upstreamConfig struct {
 }
 
 type hostConfig struct {
-	regionToURL map[string]string
-	globalURL   string
+	regionToURL       map[string]string
+	cloudProfileToURL map[string]string
+	globalURL         string
 }
 
 var hostWithPathPattern = regexp.MustCompile(`https?://[a-zA-Z0-9\.\-]+(/[^\s]*)+`)
 
-// GetUpstreamConfig returns the containerd upstream configuration based on provider and region.
-func (c *configuration) GetUpstreamConfig(provider string, region string) []UpStreamConfiguration {
+// GetUpstreamConfig returns the containerd upstream configuration based on provider, region and cloud profile.
+func (c *configuration) GetUpstreamConfig(provider, region, cloudProfile string) []UpStreamConfiguration {
 	result := make([]UpStreamConfiguration, 0, len(c.upstreamConfigs))
 
 	for _, upstreamConf := range c.upstreamConfigs {
 		if hosts, providerExists := upstreamConf.providerToHosts[provider]; providerExists {
 			hostURL := hosts.regionToURL[region]
+			if hostURL == "" {
+				hostURL = hosts.cloudProfileToURL[cloudProfile]
+			} else if hostURL != hosts.cloudProfileToURL[cloudProfile] {
+				// If both region and cloud profile are configured the URL must be the same.git
+				continue
+			}
 			if hostURL == "" {
 				hostURL = hosts.globalURL
 			}
@@ -108,7 +115,17 @@ func createUpstreamConfig(containerdUpstreamConfig v1alpha1.ContainerdConfigurat
 			upstream.providerToHosts[host.Provider].regionToURL[region] = host.URL
 		}
 
-		if len(host.Regions) == 0 {
+		for _, cloudProfile := range host.CloudProfiles {
+			if upstream.providerToHosts[host.Provider].cloudProfileToURL == nil {
+				config := upstream.providerToHosts[host.Provider]
+				config.regionToURL = make(map[string]string)
+				upstream.providerToHosts[host.Provider] = config
+			}
+
+			upstream.providerToHosts[host.Provider].cloudProfileToURL[cloudProfile] = host.URL
+		}
+
+		if len(host.Regions) == 0 && len(host.CloudProfiles) == 0 {
 			upstream.providerToHosts[host.Provider] = hostConfig{globalURL: host.URL}
 		}
 	}
